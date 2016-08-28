@@ -23,12 +23,35 @@ module.exports = function(app, passport) {
         res.render('login.ejs', { message: req.flash('loginMessage') }); 
     });
 
-    // process the login form
-    app.post('/login', passport.authenticate('local-login', {
-        successRedirect : '/profile', // redirect to the secure profile section
-        failureRedirect : '/login', // redirect back to the signup page if there is an error
-        failureFlash : true // allow flash messages
-    }));
+    app.post('/login', function(req, res, next) {
+        passport.authenticate('local-login', {
+            successRedirect : req.body.successRedirect, // redirect to where form says
+            failureRedirect : req.body.failureRedirect, // redirect to where form says
+            failureFlash : true // allow flash messages
+        })(req, res, next)
+    });
+
+    /*
+    app.post('/login', function(req, res, next) {
+        passport.authenticate('local-login', function (err, user, info) {
+            if (err) {
+                return next(err);
+            }
+
+            if (!user) {
+                return res.send({success: false, message: "No user found."});
+            }
+
+            req.logIn(user, function(err) {
+                if (err) {
+                    return next(err);
+                }
+
+                return res.send({success: true, user: user});
+            });
+        })(req, res, next)
+    });
+    */
 
     // =====================================
     // SIGNUP ==============================
@@ -41,11 +64,13 @@ module.exports = function(app, passport) {
     });
 
     // process the signup form
-    app.post('/signup', passport.authenticate('local-signup', {
-        successRedirect : '/profile', // redirect to the secure profile section
-        failureRedirect : '/signup', // redirect back to the signup page if there is an error
-        failureFlash : true // allow flash messages
-    }));
+    app.post('/signup', function(req, res, next) { 
+        passport.authenticate('local-signup', {
+            successRedirect : req.body.successRedirect, // redirect to where form says
+            failureRedirect : req.body.failureRedirect, // redirect to where form says
+            failureFlash : true // allow flash messages
+        })(req, res, next)
+    });
 
     // =====================================
     // RESET PASSWORD =====================
@@ -144,7 +169,9 @@ module.exports = function(app, passport) {
     // FACEBOOK ROUTES =====================
     // =====================================
     // route for facebook authentication and login
-    app.get('/auth/facebook', passport.authenticate('facebook', { scope : ['email'] }));
+    app.get('/auth/facebook', function(req, res, next) { 
+        passport.authenticate('facebook', { scope : ['email'] })(req, res, next)
+    });
 
     // handle the callback after facebook has authenticated the user
     app.get(
@@ -165,11 +192,13 @@ module.exports = function(app, passport) {
         res.render('connect-local.ejs', { message: req.flash('loginMessage') });
     });
 
-    app.post('/connect/local', passport.authenticate('local-signup', {
-        successRedirect : '/profile', // redirect to the secure profile section
-        failureRedirect : '/connect/local', // redirect back to the signup page if there is an error
-        failureFlash : true // allow flash messages
-    }));
+    app.post('/connect/local', function(req, res, next) {
+        passport.authenticate('local-signup', {
+            successRedirect : req.body.successRedirect, // redirect to where form says
+            failureRedirect : req.body.failureRedirect, // redirect to where form says
+            failureFlash : true // allow flash messages
+        })(req, res, next)
+    });
 
     // facebook -------------------------------
 
