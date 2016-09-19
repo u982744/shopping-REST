@@ -54,7 +54,6 @@ user.get('/login', userModule.login);
 user.get('/signup', userModule.signup);
 */
 
-
 // launch ======================================================================
 app.listen(port, function () {
     console.log('REST service listening on port ' + port);
