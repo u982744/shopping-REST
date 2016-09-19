@@ -1,0 +1,28 @@
+CURLS
+
+LOGIN
+curl -H "Content-Type: application/json" -X POST -d '{"email": "berman.tim@gmail.com", "password":"Shiznit!"}' http://192.168.1.100:3000/login
+
+
+Get ITEMS in ITEMS
+curl -H "Content-Type: application/json" -X GET http://192.168.1.104:3000/list/57d92d592bdc92f4d0e48aee/item
+
+Add ITEM to LIST
+curl -H "Content-Type: application/json" -X POST -d '{"name":"potatoes"}' http://192.168.1.104:3000/list/1/item
+
+Delete ITEM in LIST
+curl -H "Content-Type: application/json" -X DELETE http://192.168.1.104:3000/list/1/item/57d93e2aa88ddf4bd51d3d2d
+
+
+
+Get LISTS
+curl -H "Content-Type: application/json" -X GET http://192.168.1.104:3000/list
+
+Get LISTS for USER by id
+curl -H "Content-Type: application/json" -X GET http://192.168.1.104:3000/list/3
+
+Add LIST
+curl -H "Content-Type: application/json" -X POST -d '{"name":"Family shopping", "userid": "1"}' http://192.168.1.104:3000/list
+
+Delete LIST
+curl -H "Content-Type: application/json" -X DELETE http://192.168.1.104:3000/list/57d92e95a4755713d1683143

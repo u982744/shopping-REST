@@ -1,7 +1,6 @@
     // third party dependencies
 var express = require('express'),
     mongoose = require('mongoose'),
-    passport = require('passport'),
     flash = require('connect-flash'),
 
     morgan = require('morgan'),
@@ -11,6 +10,7 @@ var express = require('express'),
 
     // internal dependencies
     configDB = require('./config/database.js'),
+    passport = require('passport'),
     userModule = require('./user'),
     //users = require('./users'),
     //lists = require('./lists'),
@@ -36,9 +36,16 @@ app.use(passport.initialize());
 app.use(passport.session()); // persistent login sessions
 app.use(flash()); // use connect-flash for flash messages stored in session
 
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+  next();
+});
+
 
 // routes ======================================================================
-require('./app/routes.js')(app, passport);
+require('./app/routes.js')(app, passport, mongoose);
 
 /*
 app.use('/user', user);

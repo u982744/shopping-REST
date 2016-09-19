@@ -1,10 +1,18 @@
 var User = require('../app/models/user'),
+    Item = require('../app/models/item'),
+    List = require('../app/models/list'),
     ejs = require('ejs'),
     read = require('fs').readFileSync,
     getEmailBody = ejs.compile(read(__dirname + '/../views/resetpasswordEmaiTemplate.ejs', 'utf-8')),
     Mail = require('../app/mail');
 
-module.exports = function(app, passport) {
+module.exports = function(app, passport, mongoose) {
+    let db = mongoose.connection;
+
+    db.on('error', console.error.bind(console, 'connection error:'));
+    db.once('open', function (callback) {
+        // yay!
+    });
 
     // =====================================
     // HOME PAGE (with login links) ========
@@ -24,34 +32,18 @@ module.exports = function(app, passport) {
     });
 
     app.post('/login', function(req, res, next) {
-        passport.authenticate('local-login', {
-            successRedirect : req.body.successRedirect, // redirect to where form says
-            failureRedirect : req.body.failureRedirect, // redirect to where form says
-            failureFlash : true // allow flash messages
-        })(req, res, next)
-    });
-
-    /*
-    app.post('/login', function(req, res, next) {
         passport.authenticate('local-login', function (err, user, info) {
-            if (err) {
-                return next(err);
+            if (err !== null) {
+                res.status(401).json({error: err.message});
             }
 
-            if (!user) {
-                return res.send({success: false, message: "No user found."});
+            if (user !== false) {
+                res.json(user);
+            } else {
+                res.status(401).json(info);
             }
-
-            req.logIn(user, function(err) {
-                if (err) {
-                    return next(err);
-                }
-
-                return res.send({success: true, user: user});
-            });
-        })(req, res, next)
+        })(req, res, next);
     });
-    */
 
     // =====================================
     // SIGNUP ==============================
@@ -64,12 +56,20 @@ module.exports = function(app, passport) {
     });
 
     // process the signup form
-    app.post('/signup', function(req, res, next) { 
-        passport.authenticate('local-signup', {
-            successRedirect : req.body.successRedirect, // redirect to where form says
-            failureRedirect : req.body.failureRedirect, // redirect to where form says
-            failureFlash : true // allow flash messages
-        })(req, res, next)
+    app.post('/signup', function(req, res, next) {
+        console.log("req.body", req.body);
+
+        passport.authenticate('local-signup', function (err, user, info) {
+            if (err !== null) {
+                res.status(400).json({error: err.message});
+            }
+
+            if (user !== false) {
+                res.json(user);
+            } else {
+                res.status(400).json(info);
+            }
+        })(req, res, next);
     });
 
     // =====================================
@@ -245,6 +245,175 @@ module.exports = function(app, passport) {
     app.get('/logout', function(req, res) {
         req.logout();
         res.redirect('/');
+    });
+
+
+    // =====================================
+    // LISTS ===============================
+    // =====================================
+    app.get(['/list', '/list/:userId'], function (req, res) {
+        console.log("get lists, optionally filtered by userid");
+        console.log("req.params", req.params);
+        let opts = req.params.userId === undefined ? {} : {userIds: { $in: [req.params.userId]}};
+
+        List.find(opts, function (err, lists) {
+            if (err) {
+                return console.error(err);
+            } else {
+                res.send({result: lists});
+            }
+        })
+    });
+
+    app.post('/list', function (req, res) {
+        console.log("add list");
+        console.log("req.body.name", req.body.name);
+
+        let list = new List({name: req.body.name, userIds: [req.body.userId]});
+
+        list.save(function (err, list) {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send({success: true, id: list._id});
+            }
+        });
+    });
+
+    app.put('/list/:listid/adduser/:email', function (req, res) {
+        let email = req.params.email.toLowerCase();
+        console.log("add user to list");
+        console.log("req.body", req.body);
+
+        List.findOne({_id: req.params.listid}, function (err, list) {
+            if (err) {
+                return console.error(err);
+            }
+
+            if (list === null) {
+                res.send({success: false, message: "Could not find the list to share."});
+                return;
+            }
+
+            User.findOne({ "local.email": email }, function (err, user) {
+                if (err) {
+                    return console.error(err);
+                }
+
+                if (user === null) {
+                    res.send({success: false, message: "Nobody was found with that email address."});
+                    return;
+                }
+
+                if ( list.userIds.indexOf(user._id) === -1 ) {
+                    list.userIds.push(user._id);
+
+                    list.save(function (err, list) {
+                        if (err) {
+                            res.status(500).send(err);
+                        } else {
+                            res.send({success: true, message: "Successfully shared the list to email address " + email + "."});
+                        }
+                    });
+                } else {
+                    res.send({success: true, message: "Person with email address " + email + " already has that list."});
+                }
+            })
+        });
+    });
+
+    app.delete('/list/:id', function (req, res) {
+        console.log("delete list");
+        console.log("req.params", req.params);
+
+        List.findOne({_id: req.params.id}, function (err, list) {
+            if (err) {
+                return console.error(err);
+            }
+
+            console.log("list", list);
+            list.remove();
+            res.send();
+        })
+    });
+
+
+    // =====================================
+    // LIST ITEMS ==========================
+    // =====================================
+    app.get('/list/:id/item', function (req, res) {
+        let listId = req.params.id;
+        console.log("get list items");
+        console.log("req.params", req.params);
+
+        List.findOne({_id: listId}, function (err, list) {
+            let listObj = list.toObject();
+
+            if (err) {
+                return console.error(err);
+            } else {
+                Item.find({listId: listId}, function (err, items) {
+                    if (err) {
+                        return console.error(err);
+                    } else {
+                        res.send({name: listObj.name, result: items});
+                    }
+                });
+            }
+        })
+    });
+
+    app.post('/list/:id/item', function (req, res) {
+        console.log("add list item");
+        console.log("req.params", req.params);
+        console.log("req.body", req.body);
+
+        let item = new Item({name: req.body.name, listId: req.params.id, done: false});
+
+        item.save(function (err, item) {
+            if (err) {
+                res.status(500).send(err);
+            } else {
+                res.send({success: true, id: item._id});
+            }
+        });
+    });
+
+    app.put('/list/:listid/item/:itemid', function (req, res) {
+        console.log("update done...");
+        console.log("req.params", req.params);
+        console.log("req.body", req.body);
+
+        Item.update({ _id: req.params.itemid, listId: req.params.listid }, { $set: { done: req.body.done }}, function (err, itemDoc) {
+            if (err) {
+                return console.error(err);
+            }
+
+            if (itemDoc === null) {
+                res.status(500).send(err);
+            } else {
+                res.send({success: true, id: itemDoc._id});
+            }
+        });
+    });
+
+    app.delete('/list/:listid/item/:itemid', function (req, res) {
+        console.log("req.params", req.params);
+
+        Item.findOne({_id: req.params.itemid, listId: req.params.listid}, function (err, item) {
+            if (err) {
+                return console.error(err);
+            }
+
+            console.log("item", item);
+
+            if (item === null) {
+                res.status(500).send();
+            } else {
+                item.remove();
+                res.send();
+            }
+        })
     });
 };
 
