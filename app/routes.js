@@ -360,6 +360,9 @@ module.exports = function(app, passport, mongoose) {
                     if (err) {
                         return console.error(err);
                     } else {
+                        if (items.length === 0) {
+                            res.send({name: listObj.name, result: items});
+                        }
 
                         items.forEach(function(itemDoc) {
                             let itemObj = itemDoc.toObject();
