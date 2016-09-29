@@ -353,10 +353,35 @@ module.exports = function(app, passport, mongoose) {
                 return console.error(err);
             } else {
                 Item.find({listId: listId}, function (err, items) {
+                    let myItems = [];
+                    let itemsLen = items.length;
+                    let count = 0;
+
                     if (err) {
                         return console.error(err);
                     } else {
-                        res.send({name: listObj.name, result: items});
+
+                        items.forEach(function(itemDoc) {
+                            let itemObj = itemDoc.toObject();
+
+                            User.findOne({"_id": itemObj.creatorId}, function (err, userDoc) {
+                                count = count + 1;
+
+                                if (userDoc !== null) {
+                                    let userObj = userDoc.toObject();
+                                    itemObj.creatorEmail = userObj.local.email;
+                                } else {
+                                    itemObj.creatorEmail = null;
+                                }
+
+                                myItems.push(itemObj);
+
+                                if (count === itemsLen) {
+                                    console.log("myItems", myItems);
+                                    res.send({name: listObj.name, result: myItems});
+                                }
+                            });
+                        });
                     }
                 });
             }
@@ -368,7 +393,7 @@ module.exports = function(app, passport, mongoose) {
         console.log("req.params", req.params);
         console.log("req.body", req.body);
 
-        let item = new Item({name: req.body.name, listId: req.params.id, done: false});
+        let item = new Item({name: req.body.name, listId: req.params.id, done: false, creatorId: req.body.creatorId});
 
         item.save(function (err, item) {
             if (err) {

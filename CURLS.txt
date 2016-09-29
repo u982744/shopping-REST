@@ -18,6 +18,9 @@ curl -H "Content-Type: application/json" -X DELETE http://192.168.1.104:3000/lis
 Get LISTS
 curl -H "Content-Type: application/json" -X GET http://192.168.1.104:3000/list
 
+curl -H "Content-Type: application/json" -X GET https://shopping-rest.herokuapp.com/:3000/list
+
+
 Get LISTS for USER by id
 curl -H "Content-Type: application/json" -X GET http://192.168.1.104:3000/list/3
 
