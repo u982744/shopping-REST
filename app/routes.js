@@ -370,7 +370,7 @@ module.exports = function(app, passport, mongoose) {
                             User.findOne({"_id": itemObj.creatorId}, function (err, userDoc) {
                                 count = count + 1;
 
-                                if (userDoc !== null) {
+                                if (userDoc !== null && userDoc !== undefined) {
                                     let userObj = userDoc.toObject();
                                     itemObj.creatorEmail = userObj.local.email;
                                 } else {
